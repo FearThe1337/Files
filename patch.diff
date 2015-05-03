@@ -1,0 +1,49 @@
+From 834ef24dd72659f03f588c09aaa1ab3cc8e59c0e Mon Sep 17 00:00:00 2001
+From: FearThe1337 <git@fearthe1337.com>
+Date: Sun, 3 May 2015 15:23:53 +0200
+Subject: [PATCH] Fixes errors on Post notifications due to missing information
+ about the poster when editing using the quick-edit feature.
+
+Signed-off-by: FearThe1337 <git@fearthe1337.com>
+---
+ Sources/Post.php | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Sources/Post.php b/Sources/Post.php
+index e5eba46..06af9e7 100644
+--- a/Sources/Post.php
++++ b/Sources/Post.php
+@@ -2507,7 +2507,7 @@ function QuoteFast()
+ function JavaScriptModify()
+ {
+ 	global $sourcedir, $modSettings, $board, $topic, $txt;
+-	global $user_info, $context, $smcFunc, $language;
++	global $user_info, $context, $smcFunc, $language, $board_info;
+ 
+ 	// We have to have a topic!
+ 	if (empty($topic))
+@@ -2522,6 +2522,7 @@ function JavaScriptModify()
+ 			t.locked, t.num_replies, t.id_member_started, t.id_first_msg,
+ 			m.id_msg, m.id_member, m.poster_time, m.subject, m.smileys_enabled, m.body, m.icon,
+ 			m.modified_time, m.modified_name, m.modified_reason, m.approved
++			m.poster_name, m.poster_email
+ 		FROM {db_prefix}messages AS m
+ 			INNER JOIN {db_prefix}topics AS t ON (t.id_topic = {int:current_topic})
+ 		WHERE m.id_msg = {raw:id_msg}
+@@ -2651,7 +2652,12 @@ function JavaScriptModify()
+ 			'sticky_mode' => isset($_POST['sticky']) ? (int) $_POST['sticky'] : null,
+ 			'mark_as_read' => true,
+ 		);
+-		$posterOptions = array();
++		$posterOptions = array(
++			'id' => $user_info['id'],
++			'name' => $row['poster_name'],
++			'email' => $row['poster_email'],
++			'update_post_count' => !$user_info['is_guest'] && !isset($_REQUEST['msg']) && $board_info['posts_count'],
++		);
+ 
+ 		// Only consider marking as editing if they have edited the subject, message or icon.
+ 		if ((isset($_POST['subject']) && $_POST['subject'] != $row['subject']) || (isset($_POST['message']) && $_POST['message'] != $row['body']) || (isset($_REQUEST['icon']) && $_REQUEST['icon'] != $row['icon']))
+-- 
+1.9.5.msysgit.0
+
