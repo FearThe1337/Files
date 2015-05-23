@@ -1,0 +1,55 @@
+Current database implementation:
+    ban_groups:
+        id_ban_group
+        name
+        ban_time
+        expire_time
+        cannot_access
+        cannot_register
+        cannot_post
+        cannot_login
+        reason
+        notes
+
+    ban_items:
+        id_ban
+        id_ban_group
+        ip_low1,ip_high1,ip_low2,ip_high2,ip_low3,ip_high3,ip_low4,ip_high4
+        ip_low5,ip_high5,ip_low6,ip_high6,ip_low7,ip_high7,ip_low8,ip_high8
+        hostname
+        email_address
+        id_member
+        hits
+.
+
+    Issues: 
+        - all ban queries do a full table scan on ban_items because it has no indexes.
+            -> add a index on id_member?
+            -> add a index on id_ban_group?
+            
+        - IPs are split up over 16 fields and are not indexed. Could be reduced to 4.
+            -> IPv4 adresses are 32 bits, 4 fields of 1 byte were enough for this, IPV6 is 128 bits and requires 8 fields of 2 bytes in the current implementation.
+            -> Possibly use BigInts, those are 64 bit numbers. We could index the minimum number and query in the style:
+                WHERE ip_low1 >= {int:wanted_ip} AND ip_low1 <= {int:wanted_ip}
+                    
+            -> Bit more specific:
+                a match would be when: 
+        
+        - email_adress bans will always be inefficient due to their LIKE nature. Perhaps cache this
+            -> create a new table, ban_items_email_affected
+                                   id_ban
+                                   id_member
+            -> Update when:
+                - a user changes their email.
+                - a user registers.
+                - an admin changes a ban trigger or adds one.
+                - On update from a version not having this.
+                - Might need a fix database entry for bad imports?
+                
+            -> We could add a index on the email adress on the table members to speed this up?
+            
+        - Hostname, guess they will stay not very efficient. Perhaps disencourage them and put them in a seperate table to prevent full table scans (or, add a index and do where != '')?
+
+    Extra suggestion:
+        Split up the different types (email, hostname, ip, member) in to seperate tables to reduce on used key space.
+
